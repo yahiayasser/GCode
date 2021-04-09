@@ -1,4 +1,4 @@
-Src/stm32f1xx_it.o: ../Src/stm32f1xx_it.c ../Inc/main.h \
+Src/SD.o: ../Src/SD.c ../Inc/main.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h \
  ../Inc/stm32f1xx_hal_conf.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rcc.h \
@@ -27,7 +27,11 @@ Src/stm32f1xx_it.o: ../Src/stm32f1xx_it.c ../Inc/main.h \
  ../Inc/Platform_Types.h ../Inc/Joystick.h ../Inc/SD.h \
  ../Middlewares/Third_Party/FatFs/src/ff.h \
  ../Middlewares/Third_Party/FatFs/src/integer.h ../Inc/ffconf.h \
- ../Inc/main.h ../Inc/ssd1306.h ../Inc/fonts.h ../Inc/stm32f1xx_it.h
+ ../Inc/main.h ../Inc/ssd1306.h ../Inc/fonts.h ../Inc/fatfs.h \
+ ../Middlewares/Third_Party/FatFs/src/ff_gen_drv.h \
+ ../Middlewares/Third_Party/FatFs/src/diskio.h \
+ ../Middlewares/Third_Party/FatFs/src/ff.h ../Inc/user_diskio.h \
+ ../Inc/SD.h
 
 ../Inc/main.h:
 
@@ -99,4 +103,14 @@ Src/stm32f1xx_it.o: ../Src/stm32f1xx_it.c ../Inc/main.h \
 
 ../Inc/fonts.h:
 
-../Inc/stm32f1xx_it.h:
+../Inc/fatfs.h:
+
+../Middlewares/Third_Party/FatFs/src/ff_gen_drv.h:
+
+../Middlewares/Third_Party/FatFs/src/diskio.h:
+
+../Middlewares/Third_Party/FatFs/src/ff.h:
+
+../Inc/user_diskio.h:
+
+../Inc/SD.h:

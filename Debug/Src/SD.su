@@ -1,0 +1,4 @@
+SD.c:19:16:SD_init	24	static
+SD.c:42:16:SD_WriteOrCreate	32	static
+SD.c:76:16:SD_AppendText	24	static
+SD.c:97:16:SD_Read	32	static

@@ -30,6 +30,9 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f1xx_hal.h"
 #include "Platform_Types.h"
+#include "Joystick.h"
+#include "SD.h"
+#include "ssd1306.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -86,6 +89,12 @@ void Error_Handler(void);
 #define OLED_SDA_Pin GPIO_PIN_7
 #define OLED_SDA_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
+void SystemClock_Config(void);
+void MX_GPIO_Init(void);
+void MX_DMA_Init(void);
+void MX_I2C1_Init(void);
+void MX_SPI1_Init(void);
+void MX_USART1_UART_Init(void);
 
 /* USER CODE END Private defines */
 

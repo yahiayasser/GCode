@@ -56,8 +56,8 @@ all: main-build
 main-build: GCode.elf secondary-outputs
 
 # Tool invocations
-GCode.elf: $(OBJS) $(USER_OBJS) D:\Embedded_Diploma\Freelancer_Work\Dennis_Project_Freelancer\GCode\STM32F103C8TX_FLASH.ld
-	arm-none-eabi-gcc -o "GCode.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\Embedded_Diploma\Freelancer_Work\Dennis_Project_Freelancer\GCode\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="GCode.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+GCode.elf: $(OBJS) $(USER_OBJS) D:\Embedded_Diploma\Freelancer_Work\Dennis_Project_Freelancer\GCode\GCode\STM32F103C8TX_FLASH.ld
+	arm-none-eabi-gcc -o "GCode.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\Embedded_Diploma\Freelancer_Work\Dennis_Project_Freelancer\GCode\GCode\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="GCode.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

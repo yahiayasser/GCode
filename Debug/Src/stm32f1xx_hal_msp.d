@@ -24,7 +24,10 @@ Src/stm32f1xx_hal_msp.o: ../Src/stm32f1xx_hal_msp.c ../Inc/main.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_spi.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h \
- ../Inc/Platform_Types.h
+ ../Inc/Platform_Types.h ../Inc/Joystick.h ../Inc/SD.h \
+ ../Middlewares/Third_Party/FatFs/src/ff.h \
+ ../Middlewares/Third_Party/FatFs/src/integer.h ../Inc/ffconf.h \
+ ../Inc/main.h ../Inc/ssd1306.h ../Inc/fonts.h
 
 ../Inc/main.h:
 
@@ -79,3 +82,19 @@ Src/stm32f1xx_hal_msp.o: ../Src/stm32f1xx_hal_msp.c ../Inc/main.h \
 ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h:
 
 ../Inc/Platform_Types.h:
+
+../Inc/Joystick.h:
+
+../Inc/SD.h:
+
+../Middlewares/Third_Party/FatFs/src/ff.h:
+
+../Middlewares/Third_Party/FatFs/src/integer.h:
+
+../Inc/ffconf.h:
+
+../Inc/main.h:
+
+../Inc/ssd1306.h:
+
+../Inc/fonts.h:

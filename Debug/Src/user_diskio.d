@@ -28,7 +28,9 @@ Src/user_diskio.o: ../Src/user_diskio.c \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_spi.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h \
- ../Inc/Platform_Types.h ../Inc/fatfs_sd.h
+ ../Inc/Platform_Types.h ../Inc/Joystick.h ../Inc/SD.h \
+ ../Middlewares/Third_Party/FatFs/src/ff.h ../Inc/ssd1306.h \
+ ../Inc/fonts.h ../Inc/fatfs_sd.h
 
 ../Middlewares/Third_Party/FatFs/src/ff_gen_drv.h:
 
@@ -93,5 +95,15 @@ Src/user_diskio.o: ../Src/user_diskio.c \
 ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h:
 
 ../Inc/Platform_Types.h:
+
+../Inc/Joystick.h:
+
+../Inc/SD.h:
+
+../Middlewares/Third_Party/FatFs/src/ff.h:
+
+../Inc/ssd1306.h:
+
+../Inc/fonts.h:
 
 ../Inc/fatfs_sd.h:
