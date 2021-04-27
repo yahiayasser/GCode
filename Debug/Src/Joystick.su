@@ -1,2 +1,4 @@
-Joystick.c:15:6:JoyStick_Init	56	static
-Joystick.c:69:6:JoyStick_Read	16	static
+Joystick.c:18:6:JoyStick_Init	56	static
+Joystick.c:72:6:JoyStick_Read	16	static
+Joystick.c:97:19:JoyStick_ReadButton	8	static
+Joystick.c:109:6:waitForJoystickMid	8	static

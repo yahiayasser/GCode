@@ -1,0 +1,5 @@
+OLED.c:14:14:string_length	24	static
+OLED.c:22:16:OLED_Init	16	static
+OLED.c:33:6:OLED_setTextDisplay	32	static
+OLED.c:73:6:OLED_setTextRow	24	static
+OLED.c:83:6:OLED_Clear	8	static

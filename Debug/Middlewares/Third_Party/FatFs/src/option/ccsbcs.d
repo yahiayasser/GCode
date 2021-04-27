@@ -27,9 +27,9 @@ Middlewares/Third_Party/FatFs/src/option/ccsbcs.o: \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_spi.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h \
- ../Inc/Platform_Types.h ../Inc/Joystick.h ../Inc/SD.h \
- ../Middlewares/Third_Party/FatFs/src/ff.h ../Inc/ssd1306.h \
- ../Inc/fonts.h
+ ../Inc/Platform_Types.h ../Inc/Joystick.h ../Inc/OLED.h ../Inc/fonts.h \
+ ../Inc/ssd1306.h ../Inc/SDcard.h \
+ ../Middlewares/Third_Party/FatFs/src/ff.h
 
 ../Middlewares/Third_Party/FatFs/src/option/../ff.h:
 
@@ -93,10 +93,12 @@ Middlewares/Third_Party/FatFs/src/option/ccsbcs.o: \
 
 ../Inc/Joystick.h:
 
-../Inc/SD.h:
+../Inc/OLED.h:
 
-../Middlewares/Third_Party/FatFs/src/ff.h:
+../Inc/fonts.h:
 
 ../Inc/ssd1306.h:
 
-../Inc/fonts.h:
+../Inc/SDcard.h:
+
+../Middlewares/Third_Party/FatFs/src/ff.h:

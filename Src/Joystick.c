@@ -12,6 +12,9 @@ static ADC_HandleTypeDef hadc = {0};
 static ADC_ChannelConfTypeDef sConfig = {0};
 static uint8_t calibrated = 0;
 
+extern uint16 Joystick_xy[2];
+extern JOYSTICK* Joystick_Handler;
+
 void JoyStick_Init(JOYSTICK* Joystick_PTR)
 {
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -89,5 +92,25 @@ void JoyStick_Read(JOYSTICK* Joystick_PTR, uint16_t* JoyStick_XY)
 	// Read The ADC Conversion Result Write It To JoyStick Y
 	Joystick_PTR -> Joystick_xyValues[1] = HAL_ADC_GetValue(&hadc);
 	JoyStick_XY[1] = Joystick_PTR -> Joystick_xyValues[1];
+}
+
+Joystick_PinState JoyStick_ReadButton(void)
+{
+	if(HAL_GPIO_ReadPin(Joystick_Button_GPIO_Port, Joystick_Button_Pin) == GPIO_PIN_RESET)
+	{
+		return JOYSTICK_PIN_RESET;
+	}
+	else
+	{
+		return JOYSTICK_PIN_SET;
+	}
+}
+
+void waitForJoystickMid(void)
+{
+	while(1) { // wait for the joystick to be release (back to mid position)
+		JoyStick_Read(Joystick_Handler, Joystick_xy);
+		if (JoystickIsReleased(Joystick_xy)) {break;}
+	}
 }
 

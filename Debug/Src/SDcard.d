@@ -1,4 +1,4 @@
-Src/SD.o: ../Src/SD.c ../Inc/main.h \
+Src/SDcard.o: ../Src/SDcard.c ../Inc/SDcard.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h \
  ../Inc/stm32f1xx_hal_conf.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rcc.h \
@@ -24,16 +24,15 @@ Src/SD.o: ../Src/SD.c ../Inc/main.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_spi.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h \
- ../Inc/Platform_Types.h ../Inc/Joystick.h ../Inc/SD.h \
- ../Middlewares/Third_Party/FatFs/src/ff.h \
+ ../Inc/Platform_Types.h ../Middlewares/Third_Party/FatFs/src/ff.h \
  ../Middlewares/Third_Party/FatFs/src/integer.h ../Inc/ffconf.h \
- ../Inc/main.h ../Inc/ssd1306.h ../Inc/fonts.h ../Inc/fatfs.h \
+ ../Inc/main.h ../Inc/Joystick.h ../Inc/OLED.h ../Inc/fonts.h \
+ ../Inc/ssd1306.h ../Inc/SDcard.h ../Inc/fatfs.h \
  ../Middlewares/Third_Party/FatFs/src/ff_gen_drv.h \
  ../Middlewares/Third_Party/FatFs/src/diskio.h \
- ../Middlewares/Third_Party/FatFs/src/ff.h ../Inc/user_diskio.h \
- ../Inc/SD.h
+ ../Middlewares/Third_Party/FatFs/src/ff.h ../Inc/user_diskio.h
 
-../Inc/main.h:
+../Inc/SDcard.h:
 
 ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h:
 
@@ -87,10 +86,6 @@ Src/SD.o: ../Src/SD.c ../Inc/main.h \
 
 ../Inc/Platform_Types.h:
 
-../Inc/Joystick.h:
-
-../Inc/SD.h:
-
 ../Middlewares/Third_Party/FatFs/src/ff.h:
 
 ../Middlewares/Third_Party/FatFs/src/integer.h:
@@ -99,9 +94,15 @@ Src/SD.o: ../Src/SD.c ../Inc/main.h \
 
 ../Inc/main.h:
 
-../Inc/ssd1306.h:
+../Inc/Joystick.h:
+
+../Inc/OLED.h:
 
 ../Inc/fonts.h:
+
+../Inc/ssd1306.h:
+
+../Inc/SDcard.h:
 
 ../Inc/fatfs.h:
 
@@ -112,5 +113,3 @@ Src/SD.o: ../Src/SD.c ../Inc/main.h \
 ../Middlewares/Third_Party/FatFs/src/ff.h:
 
 ../Inc/user_diskio.h:
-
-../Inc/SD.h:

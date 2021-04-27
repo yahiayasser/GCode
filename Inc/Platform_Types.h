@@ -86,8 +86,8 @@ typedef volatile uint64 vuint64_t;
 
 
 typedef uint8 Std_ReturnType;
-#define E_OK 					(Std_ReturnType)0
-#define E_NOT_OK 				(Std_ReturnType)1
+#define E_OK 					(Std_ReturnType)1
+#define E_NOT_OK 				(Std_ReturnType)0
 
 
 //Optimized integer data types

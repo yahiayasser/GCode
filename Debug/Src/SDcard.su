@@ -1,0 +1,5 @@
+SDcard.c:20:16:SD_init	24	static
+SDcard.c:43:16:SD_WriteOrCreate	32	static
+SDcard.c:77:16:SD_AppendText	24	static
+SDcard.c:98:16:SD_Read	32	static
+SDcard.c:140:16:SD_NextFileDirectory	4160	static

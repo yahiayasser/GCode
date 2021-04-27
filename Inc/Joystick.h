@@ -13,6 +13,14 @@
 #include "stm32f1xx_hal.h"
 #include "Platform_Types.h"
 
+#ifndef Joystick_Button_Pin
+#define Joystick_Button_Pin GPIO_PIN_0
+#endif
+
+#ifndef Joystick_Button_GPIO_Port
+#define Joystick_Button_GPIO_Port GPIOA
+#endif
+
 struct Joystick_Container
 {
 	GPIO_TypeDef* 	JoyStick_xGPIO;
@@ -26,6 +34,9 @@ struct Joystick_Container
 };
 
 typedef struct Joystick_Container JOYSTICK;
+typedef GPIO_PinState Joystick_PinState;
+#define JOYSTICK_PIN_RESET	((Joystick_PinState)0)
+#define JOYSTICK_PIN_SET	((Joystick_PinState)1)
 
 #define Joystick_ADC_Resolution	4096
 
@@ -43,6 +54,8 @@ typedef struct Joystick_Container JOYSTICK;
 
 /*-----[ Prototypes For All Functions ]-----*/
 void JoyStick_Init(JOYSTICK* Joystick_PTR);
-void JoyStick_Read(JOYSTICK* Joystick_PTR, uint16_t* JoyStick_XY);
+void JoyStick_Read(JOYSTICK* Joystick_PTR, uint16* JoyStick_XY);
+Joystick_PinState JoyStick_ReadButton(void);
+void waitForJoystickMid(void);
 
 #endif /* INC_JOYSTICK_H_ */

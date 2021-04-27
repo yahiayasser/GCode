@@ -1,10 +1,12 @@
 
-#ifndef SD_H
-#define SD_H
+#ifndef SDCARD_H_
+#define SDCARD_H_
 
 #include <string.h>
 #include <stdbool.h>
 
+#include "stm32f1xx_hal.h"
+#include "Platform_Types.h"
 #include "ff.h"
 
 typedef uint8 FlashDrive_WriteCreate;
@@ -19,4 +21,7 @@ Std_ReturnType SD_WriteOrCreate(uint8* wdataPTR, uint8* path, FlashDrive_WriteCr
 Std_ReturnType SD_AppendText(uint8* wdataPTR, uint8* path);
 // SD card test Read function
 Std_ReturnType SD_Read(uint8* rdataPTR, uint8* path);
+// SD card test Read function
+Std_ReturnType SD_NextFileDirectory(sint8* path);
+
 #endif

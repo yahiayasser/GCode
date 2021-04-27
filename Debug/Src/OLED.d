@@ -24,7 +24,7 @@ Src/OLED.o: ../Src/OLED.c ../Inc/OLED.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_spi.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h \
- ../Inc/Platform_Types.h
+ ../Inc/Platform_Types.h ../Inc/fonts.h ../Inc/ssd1306.h
 
 ../Inc/OLED.h:
 
@@ -79,3 +79,7 @@ Src/OLED.o: ../Src/OLED.c ../Inc/OLED.h \
 ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h:
 
 ../Inc/Platform_Types.h:
+
+../Inc/fonts.h:
+
+../Inc/ssd1306.h:

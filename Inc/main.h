@@ -31,8 +31,8 @@ extern "C" {
 #include "stm32f1xx_hal.h"
 #include "Platform_Types.h"
 #include "Joystick.h"
-#include "SD.h"
-#include "ssd1306.h"
+#include "OLED.h"
+#include "SDcard.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -95,6 +95,11 @@ void MX_DMA_Init(void);
 void MX_I2C1_Init(void);
 void MX_SPI1_Init(void);
 void MX_USART1_UART_Init(void);
+
+uint8 fileMenu(void);
+void moveMenu(void);
+void sendFile(uint8 byte);
+uint8 filecount(void);
 
 /* USER CODE END Private defines */
 

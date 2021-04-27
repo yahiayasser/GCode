@@ -5,15 +5,16 @@
  *      Author: Yahia
  */
 
-#include "main.h"
+#include "SDcard.h"
 #include "fatfs.h"
-#include "SD.h"
 
 //File Variables
-FATFS fs;  // file system
-FIL file;
-FRESULT res;
-UINT byteswritten, bytesread;
+extern FATFS fs;  // file system
+extern FIL file;
+extern FILINFO fileInfo;
+extern FRESULT res;
+extern UINT byteswritten, bytesread;
+
 
 // SD card init function
 Std_ReturnType SD_init(GPIO_TypeDef * SD_CS_PORT, uint16_t SD_CS_PIN)
@@ -133,4 +134,23 @@ Std_ReturnType SD_Read(uint8* rdataPTR, uint8* path)
 	return_type = E_OK;
 	return return_type;  // success
 
+}
+
+// SD card test Read function
+Std_ReturnType SD_NextFileDirectory(sint8* path)
+{
+	Std_ReturnType return_type = E_NOT_OK;
+	DIR directory;
+
+	if(f_opendir(&directory, path) != FR_OK) {return return_type;}
+	if(f_readdir(&directory, &fileInfo) != FR_OK || fileInfo.fname[0] == '\0') {return return_type;}
+
+#if _USE_LFN
+	path = *fileInfo.lfname ? fileInfo.lfname : fileInfo.fname;
+#else
+	path = fileInfo.fname;
+#endif
+
+	return_type = E_OK;
+	return return_type;  // success
 }
