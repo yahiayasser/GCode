@@ -36,6 +36,17 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+void SystemClock_Config(void);
+void MX_GPIO_Init(void);
+void MX_DMA_Init(void);
+void MX_I2C1_Init(void);
+void MX_SPI1_Init(void);
+void MX_USART1_UART_Init(void);
+
+uint8 fileMenu(void);
+void moveMenu(void);
+void sendFile(sint8 fileIndex);
+uint8 filecount(void);
 
 /* USER CODE END Includes */
 
@@ -89,17 +100,8 @@ void Error_Handler(void);
 #define OLED_SDA_Pin GPIO_PIN_7
 #define OLED_SDA_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
-void SystemClock_Config(void);
-void MX_GPIO_Init(void);
-void MX_DMA_Init(void);
-void MX_I2C1_Init(void);
-void MX_SPI1_Init(void);
-void MX_USART1_UART_Init(void);
-
-uint8 fileMenu(void);
-void moveMenu(void);
-void sendFile(uint8 byte);
-uint8 filecount(void);
+/* Size of Reception buffer */
+#define RX_BUFFER_SIZE   64
 
 /* USER CODE END Private defines */
 

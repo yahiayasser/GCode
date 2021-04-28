@@ -136,6 +136,46 @@ Std_ReturnType SD_Read(uint8* rdataPTR, uint8* path)
 
 }
 
+Std_ReturnType SD_ReadUntil(uint8* rdataPTR, uint8* path, uint8 StopChar)
+{
+	Std_ReturnType return_type = E_NOT_OK;
+	uint32 size;
+	uint32 count;
+
+	//Open file for reading
+	if(f_open(&file, (const void*)path, FA_READ) != FR_OK)
+	{
+		return return_type;
+	}
+
+	size = f_size(&file);
+
+	//Read text from files until NULL
+	for(count = 0; count < size; count++)
+	{
+		res = f_read(&file, (uint8*)&rdataPTR[count], 1, &bytesread);
+		if(rdataPTR[count] == 0x00 || rdataPTR[count] == StopChar) // NULL string
+		{
+			bytesread = count;
+			break;
+		}
+	}
+
+	rdataPTR[count] = 0x0;
+	bytesread = count;
+
+	//Reading error handling
+	if(bytesread == 0)
+	{
+		return return_type;
+	}
+
+	//Close file
+	f_close(&file);
+	return_type = E_OK;
+	return return_type;  // success
+}
+
 // SD card test Read function
 Std_ReturnType SD_NextFileDirectory(sint8* path)
 {

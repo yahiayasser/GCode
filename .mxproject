@@ -7,8 +7,8 @@ HeaderPath=Drivers\STM32F1xx_HAL_Driver\Inc;Drivers\STM32F1xx_HAL_Driver\Inc\Leg
 CDefines=USE_HAL_DRIVER;STM32F103xB;USE_HAL_DRIVER;USE_HAL_DRIVER;
 
 [PreviousGenFiles]
-HeaderPath=D:/Embedded_Diploma/Freelancer_Work/Dennis_Project_Freelancer/GCode/Inc
+HeaderPath=D:/Embedded_Diploma/Freelancer_Work/Dennis_Project_Freelancer/GCode/GCode/Inc
 HeaderFiles=ffconf.h;user_diskio.h;fatfs.h;stm32f1xx_it.h;stm32f1xx_hal_conf.h;main.h;
-SourcePath=D:/Embedded_Diploma/Freelancer_Work/Dennis_Project_Freelancer/GCode/Src
+SourcePath=D:/Embedded_Diploma/Freelancer_Work/Dennis_Project_Freelancer/GCode/GCode/Src
 SourceFiles=user_diskio.c;fatfs.c;stm32f1xx_it.c;stm32f1xx_hal_msp.c;main.c;
 

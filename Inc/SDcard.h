@@ -21,6 +21,7 @@ Std_ReturnType SD_WriteOrCreate(uint8* wdataPTR, uint8* path, FlashDrive_WriteCr
 Std_ReturnType SD_AppendText(uint8* wdataPTR, uint8* path);
 // SD card test Read function
 Std_ReturnType SD_Read(uint8* rdataPTR, uint8* path);
+Std_ReturnType SD_ReadUntil(uint8* rdataPTR, uint8* path, uint8 StopChar);
 // SD card test Read function
 Std_ReturnType SD_NextFileDirectory(sint8* path);
 

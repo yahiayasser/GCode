@@ -83,4 +83,5 @@ void OLED_setTextRow(sint8* line, uint8 row)
 void OLED_Clear(void)
 {
 	SSD1306_Clear();
+	SSD1306_GotoXY(0, 0);
 }

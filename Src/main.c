@@ -51,6 +51,7 @@ I2C_HandleTypeDef hi2c1;
 SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart1;
+DMA_HandleTypeDef hdma_usart1_rx;
 
 //File Variables
 FATFS fs;  // file system
@@ -68,15 +69,45 @@ uint32_t total, free_space;
 uint16 Joystick_xy[2];
 extern const JOYSTICK JoyStick_CfgParam;
 JOYSTICK* Joystick_Handler = (JOYSTICK*)&JoyStick_CfgParam;
+
+boolean awaitingOK = FALSE;   // this is set true when we are waiting for the ok signal from the grbl board (see the sendCodeLine() void)
+uint64 runningTime = 0;
+
+sint8 machineStatus[10];   // last know state (Idle, Run, Hold, Door, Home, Alarm, Check)
+
+// Globals
+sint8 WposX[9];            // last known X pos on workpiece, space for 9 characters ( -999.999\0 )
+sint8 WposY[9];            // last known Y pos on workpiece
+sint8 WposZ[9];            // last known Z heighton workpiece, space for 8 characters is enough( -99.999\0 )
+sint8 MposX[9];            // last known X pos absolute to the machine
+sint8 MposY[9];            // last known Y pos absolute to the machine
+sint8 MposZ[9];            // last known Z height absolute to the machine
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
+
 /* USER CODE BEGIN PFP */
 Std_ReturnType getFileName(uint8 index, sint8* name);
 uint8 filecount(void);
+void checkForOk(void);
+void getStatus(void);
+void updateDisplayStatus(uint64 runtime);
+void sendCodeLine(sint8 *lineOfCode, boolean waitForOk);
+void removeIfExists(sint8* lineOfCode,sint8* toBeRemoved);
+void emergencyBreak(void);
+void StopSpindle(void);
+void ignoreUnsupportedCommands(sint8* lineOfCode);
+void SpindleSlowStart(void);
 static uint8 string_length(sint8 str[]);
 static void string_cat(sint8 str1[],sint8 str2[]);
 static void StringCopy(sint8 str1[], sint8 str2[]);
+static void NumberToString(uint64 num, sint8* str);
+uint8 Strings_Is_Equal(sint8 Str1[], sint8 Str2[]);
+uint8 String_FindSubstringIndex(sint8* string, sint8* subString, uint8* index);
+uint8 String_ReplaceSubstring(sint8* string, sint8* subString, sint8* replacement);
+uint8 String_IsStartWith(sint8* string, sint8 Char);
+void Sring_Trim(sint8* string);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -113,24 +144,30 @@ int main(void)
 
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
-	MX_DMA_Init();
+	//MX_DMA_Init();
 	MX_I2C1_Init();
 	MX_SPI1_Init();
 	MX_USART1_UART_Init();
+
+	/*if (HAL_OK != HAL_UART_Receive_DMA(&huart1, aRXBufferUser, RX_BUFFER_SIZE))
+	{
+		Error_Handler();
+	}*/
+
 	/* USER CODE BEGIN 2 */
 	JoyStick_Init(Joystick_Handler);
 
 	if(OLED_Init() != E_OK)
 	{
-		//Error
+		Error_Handler();
 	}
 
 	// Ask to connect (you might still use a computer and NOT connect this controller)
 	OLED_setTextDisplay("","      Connect?    ","","");
 	while (HAL_GPIO_ReadPin(Joystick_Button_GPIO_Port, Joystick_Button_Pin) == GPIO_PIN_RESET) {}  // wait for the button to be pressed
-	//delay(50);
+	HAL_Delay(50);
 	while (HAL_GPIO_ReadPin(Joystick_Button_GPIO_Port, Joystick_Button_Pin) == GPIO_PIN_SET) {}  // be sure the button is released before we continue
-	//delay(50);
+	HAL_Delay(50);
 
 	if(SD_init(SD_CS_GPIO_Port, SD_CS_Pin) != E_OK)
 	{
@@ -149,7 +186,7 @@ int main(void)
 		if (A==0) {
 			moveMenu();
 		} else {
-			//sendFile(A);
+			sendFile(A);
 		}
 		/* USER CODE BEGIN 3 */
 	}
@@ -191,8 +228,8 @@ uint8 fileMenu(void)
 		{
 			if(fileindex > 1)
 			{
-		        fileindex --;
-		        fn[0] = '\0';
+				fileindex --;
+				fn[0] = '\0';
 				getFileName(fileindex, fn);
 				StringCopy(string, " -> ");
 				string_cat(string, fn);
@@ -243,8 +280,6 @@ void moveMenu(void)
 	OLED_Clear();
 	sint8 MoveCommand[50] = "";
 	boolean hardup,harddown,slowup, slowdown, updateDisplay;
-	uint32 qtime;
-	uint64 queue=0; // queue length in milliseconds
 	uint64 startTime,lastUpdate;
 
 	sint8 sln1[21];
@@ -254,14 +289,412 @@ void moveMenu(void)
 	sint8 sla[30];
 	sint8 slb[30];
 
-	//clearRXBuffer();
+	sendCodeLine("G21", TRUE);
+	sendCodeLine("G91",TRUE); // Switch to relative coordinates
+
+	while (!Strings_Is_Equal(MoveCommand, "-1"))
+	{
+		MoveCommand [0] = '\0';
+		// read the state of all inputs
+		JoyStick_Read(Joystick_Handler, Joystick_xy);
+		hardup   = !HAL_GPIO_ReadPin(MS12_GPIO_Port, MS12_Pin);
+		harddown = !HAL_GPIO_ReadPin(MS9_GPIO_Port, MS9_Pin);
+		slowup   = !HAL_GPIO_ReadPin(MS3_GPIO_Port, MS3_Pin);
+		slowdown = !HAL_GPIO_ReadPin(MS6_GPIO_Port, MS6_Pin);
+
+		if (Joystick_xy[1] < 30)
+		{
+			StringCopy(MoveCommand, "G1 X-5 F2750"); // Slow Left
+		}
+		else
+		{
+			if (Joystick_xy[1] < 300)
+			{
+				StringCopy(MoveCommand, "G1 X-1 F500"); // Slow Left
+			}
+			else
+			{
+				if (Joystick_xy[1] > 900)
+				{
+					StringCopy(MoveCommand, "G1 X5 F2750");   // Full right
+				}
+				else
+				{
+					if (Joystick_xy[1] > 600)
+					{
+						StringCopy(MoveCommand, "G1 X1 F500");  // Slow Right
+					}
+				}
+			}
+		}
+
+		if (Joystick_xy[0] < 30)
+		{
+			StringCopy(MoveCommand, "G1 Y-5 F2750");  // Full Reverse
+		}
+		else
+		{
+			if (Joystick_xy[0] < 300)
+			{
+				StringCopy(MoveCommand, "G1 Y-1 F500");   // slow in reverse
+			}
+			else
+			{
+				if (Joystick_xy[0] > 900)
+				{
+					StringCopy(MoveCommand, "G1 Y5 F2750");  // Full forward
+				}
+				else
+				{
+					if (Joystick_xy[0] > 600)
+					{
+						StringCopy(MoveCommand, "G1 Y1 F500");  // slow forward
+					}
+				}
+			}
+		}
+
+		if (slowup)  {StringCopy(MoveCommand, "G1 Z0.2 F110");}    // Up Z
+		if (hardup)  {StringCopy(MoveCommand, "G1 Z1 F2000");}     // Full up Z
+		if (slowdown){StringCopy(MoveCommand, "G1 Z-0.2 F110");}   // Down Z
+		if (harddown){StringCopy(MoveCommand, "G1 Z-1 F2000");}    // Full down Z
+
+		if (MoveCommand[0] != '\0')
+		{
+			// send the commands
+			sendCodeLine(MoveCommand,TRUE);
+			MoveCommand[0] = '\0';
+		}
+
+		if (MoveCommand[0] == '\0')
+			startTime = HAL_GetTick();
+		// get the status of the machine and monitor the receive buffer for OK signals
+
+		if ((HAL_GetTick() - lastUpdate) >= 500) {
+			getStatus();
+			lastUpdate=HAL_GetTick();
+			updateDisplay = TRUE;
+		}
+
+		if (updateDisplay) {
+			updateDisplay = FALSE;
+			StringCopy(sln1, "X: ");
+			string_cat(sln1, WposX);
+
+			StringCopy(sln2, "Y: ");
+			string_cat(sln2, WposY);
+
+			StringCopy(sln3, "Z: ");
+			string_cat(sln3, WposZ);
+
+			StringCopy(sln4, "Click stick to exit");
+
+			StringCopy(slb, WposX);
+			string_cat(slb, " ");
+			StringCopy(slb, WposY);
+			string_cat(slb, " ");
+			StringCopy(slb, WposZ);
+
+			if (sla != slb) {
+				OLED_setTextDisplay(sln1,sln2,sln3,sln4);
+				StringCopy(sla,slb);
+			}
+		}
+
+		if (JoyStick_ReadButton() == JOYSTICK_PIN_RESET) { // button is pushed, exit the move loop
+			// set x,y and z to 0
+			sendCodeLine("G92 X0 Y0 Z0",TRUE); //For GRBL v8
+			getStatus();
+			OLED_Clear();
+			StringCopy(MoveCommand,"-1");
+			while (JoyStick_ReadButton() == JOYSTICK_PIN_RESET) {}; // wait until the user releases the button
+			HAL_Delay(10);
+		}
+	}
 }
+
+void sendFile(sint8 fileIndex)
+{
+	sint8 strLine[100] = "";
+	sint8 filename[20];
+	uint64 lastUpdate = 0;;
+
+	if(getFileName((uint8)fileIndex, filename) != E_OK)
+	{
+		OLED_setTextDisplay("File","", "Error, file not found","");
+		HAL_Delay(1000); // show the error
+		return;
+	}
+
+	// Set the Work Position to zero
+	sendCodeLine("G90",TRUE); // absolute coordinates
+	sendCodeLine("G21",TRUE);
+	sendCodeLine("G92 X0 Y0 Z0",TRUE);  // set zero
+
+	// Start the spindle
+	SpindleSlowStart();
+
+	// reset the timer
+	runningTime = HAL_GetTick();
+
+	if (!awaitingOK)
+	{
+		SD_ReadUntil((uint8*)strLine, (uint8*)filename, '\n');
+		ignoreUnsupportedCommands(strLine);
+		if (strLine[0] != '\0') sendCodeLine(strLine,TRUE);    // sending it!
+	}
+
+	// get the status of the machine and monitor the receive buffer for OK signals
+	if (HAL_GetTick() - lastUpdate >= 250) {
+		lastUpdate=HAL_GetTick();
+		updateDisplayStatus(runningTime);
+	}
+	if (!HAL_GPIO_ReadPin(MS12_GPIO_Port, MS12_Pin)) {emergencyBreak();}
+
+
+	/*
+	   End of File!
+	   All Gcode lines have been send but the machine may still be processing them
+	   So we query the status until it goes Idle
+	 */
+
+	while (Strings_Is_Equal (machineStatus,"Idle") != 0) {
+		if (!HAL_GPIO_ReadPin(MS12_GPIO_Port, MS12_Pin)) {emergencyBreak();}
+		HAL_Delay(250);
+		getStatus();
+		updateDisplayStatus(runningTime);
+	}
+	// Now it is done.
+
+	// Stop the spindle
+	StopSpindle();
+
+	OLED_setTextRow("                ", 1);
+	OLED_setTextRow("                ", 2);
+	OLED_setTextRow("                ", 3);
+	while (JoyStick_ReadButton()==JOYSTICK_PIN_SET) {} // Wait for the button to be pressed
+	HAL_Delay(50);
+	while (JoyStick_ReadButton()==JOYSTICK_PIN_RESET) {} // Wait for the button to be released
+	HAL_Delay(50);
+	return;
+}
+
+void StopSpindle(void)
+{
+	HAL_GPIO_WritePin(SpindleStartRelay_GPIO_Port, SpindleStartRelay_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(SpindleRelay_GPIO_Port, SpindleRelay_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(yellowLED_GPIO_Port, yellowLED_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(greenLED_GPIO_Port, greenLED_Pin, GPIO_PIN_RESET);
+}
+
+void emergencyBreak(void){
+	uint8 data = 24;
+	HAL_UART_Transmit(&huart1, (uint8*)"!", 1, 100); // feed hold
+	OLED_setTextDisplay("Pause","Green = Continue","Red = Reset","");
+	while (TRUE) {
+		if (!HAL_GPIO_ReadPin(MS3_GPIO_Port, MS3_Pin)) {HAL_UART_Transmit(&huart1, (uint8*)"~", 1, 100);return;} // send continue and return
+		if (!HAL_GPIO_ReadPin(MS6_GPIO_Port, MS6_Pin)) {
+			HAL_UART_Transmit(&huart1, &data, 1, 100);
+			HAL_Delay(500);
+			//HAL_GPIO_WritePin(resetpin_GPIO_Port, resetpin_Pin, GPIO_PIN_RESET);
+		}
+	}
+}
+
+void ignoreUnsupportedCommands(sint8* lineOfCode)
+{
+	/*
+	  Remove unsupported codes, either because they are unsupported by GRBL or because I choose to.
+	 */
+	removeIfExists(lineOfCode,"G64");   // Unsupported: G64 Constant velocity mode
+	removeIfExists(lineOfCode,"G40");   // unsupported: G40 Tool radius comp off
+	removeIfExists(lineOfCode,"G41");   // unsupported: G41 Tool radius compensation left
+	removeIfExists(lineOfCode,"G81");   // unsupported: G81 Canned drilling cycle
+	removeIfExists(lineOfCode,"G83");   // unsupported: G83 Deep hole drilling canned cycle
+	removeIfExists(lineOfCode,"M6");    // ignore Tool change
+	removeIfExists(lineOfCode,"M7");    // ignore coolant control
+	removeIfExists(lineOfCode,"M8");    // ignore coolant control
+	removeIfExists(lineOfCode,"M9");    // ignore coolant control
+	removeIfExists(lineOfCode,"M10");   // ignore vacuum, pallet clamp
+	removeIfExists(lineOfCode,"M11");   // ignore vacuum, pallet clamp
+	removeIfExists(lineOfCode,"M5");    // ignore spindle off
+	String_ReplaceSubstring(lineOfCode, "M2 ", "M5 M2 "); // Shut down spindle on program end.
+
+	// Ignore comment lines
+	// Ignore tool commands, I do not support tool changers
+	if (String_IsStartWith(lineOfCode, '(') || String_IsStartWith(lineOfCode, 'T') ) {lineOfCode[0] = '\0';}
+	Sring_Trim(lineOfCode);
+}
+
+void removeIfExists(sint8* lineOfCode,sint8* toBeRemoved )
+{
+	String_ReplaceSubstring(lineOfCode, toBeRemoved, " ");
+}
+
+void SpindleSlowStart(void)
+{
+	// The first relay gives power to the spindle through a 1 ohm power resistor.
+	// This limits the current just enough to prevent the current protection.
+	//HAL_GPIO_WritePin(yellowLED_Button_GPIO_Port, yellowLED_Button_Pin, GPIO_PIN_SET);
+	//HAL_GPIO_WritePin(SpindleStartRelay_Button_GPIO_Port, SpindleStartRelay_Button_Pin, GPIO_PIN_RESET);
+	HAL_Delay(500);
+	//HAL_GPIO_WritePin(yellowLED_Button_GPIO_Port, yellowLED_Button_Pin, GPIO_PIN_RESET);
+
+	// After the spindle reaches full speed, the second relay takes over, this relay powers the
+	// spindle without any resitors
+	//HAL_GPIO_WritePin(SpindleRelay_Button_GPIO_Port, SpindleRelay_Button_Pin, GPIO_PIN_RESET);
+	//HAL_GPIO_WritePin(greenLED_Button_GPIO_Port, greenLED_Button_Pin, GPIO_PIN_SET);
+	HAL_Delay(1000); // wait for the spindle to rev up completely
+}
+
+void sendCodeLine(sint8 *lineOfCode, boolean waitForOk)
+{
+	uint32 updateScreen = 0;
+	HAL_UART_Transmit(&huart1, (uint8*)lineOfCode, string_length(lineOfCode), 5000);
+	awaitingOK = TRUE;
+	//HAL_Delay(10);
+	checkForOk();
+	while (waitForOk && awaitingOK)
+	{
+		HAL_Delay(50);
+		if (updateScreen++ > 4)
+		{
+			updateScreen=0;
+			updateDisplayStatus(runningTime);
+		}
+		checkForOk();
+	}
+}
+
+void updateDisplayStatus(uint64 runtime)
+{
+	/*
+	   I had some issues with updating the display while carving a file
+	   I created this extra void, just to update the display while carving.
+	 */
+
+	uint64 t = HAL_GetTick() - runtime;
+	uint32 H,M,S;
+	sint8 StringNum[4];
+	sint8 StringTime[10];
+	sint8 StringMachine[20];
+
+	t=t/1000;
+	// Now t is the a number of seconds.. we must convert that to "hh:mm:ss"
+	H = t/3600;
+	t = t - (H * 3600);
+	M = t/60;
+	S = t - (M * 60);
+	NumberToString(H, StringNum);
+	StringCopy(StringTime, StringNum);
+	string_cat(StringTime, ";");
+	NumberToString(M, StringNum);
+	StringCopy(StringTime, StringNum);
+	string_cat(StringTime, ";");
+	NumberToString(S, StringNum);
+	StringCopy(StringTime, StringNum);
+
+	getStatus();
+	OLED_Clear();
+	StringCopy(StringMachine, machineStatus);
+	string_cat(StringMachine, " ");
+	string_cat(StringMachine, StringTime);
+	OLED_setTextRow(StringMachine, 0);
+	StringCopy(StringMachine, "X: ");
+	string_cat(StringMachine, WposX);
+	string_cat(StringMachine, " ");
+	OLED_setTextRow(StringMachine, 1);
+	StringCopy(StringMachine, "Y: ");
+	string_cat(StringMachine, WposY);
+	string_cat(StringMachine, " ");
+	OLED_setTextRow(StringMachine, 1);
+	StringCopy(StringMachine, "Z: ");
+	string_cat(StringMachine, WposZ);
+	string_cat(StringMachine, " ");
+	OLED_setTextRow(StringMachine, 2);
+}
+
+void getStatus(void)
+{
+	/*
+	    This gets the status of the machine
+	    The status message of the machine might look something like this (this is a worst scenario message)
+	    The max length of the message is 72 characters long (including carriage return).
+
+	    <Check,MPos:-995.529,-210.560,-727.000,WPos:-101.529,-115.440,-110.000>
+	 */
+
+	sint8 content[80];
+	sint8 character;
+	uint8 index=0;
+	boolean completeMessage=false;
+	uint32 i=0;
+	uint32 c=0;
+
+	checkForOk();
+	HAL_UART_Transmit(&huart1, (uint8*)"?", 2, 5000);
+
+	while(!(__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE))){}
+	while(__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE))
+	{
+		HAL_UART_Receive(&huart1, (uint8*)&character, 1, 100);
+		if (content[index] =='>') completeMessage=TRUE; // a simple check to see if the message is complete
+		if (index>0) {
+			if (content[index]=='k' && content[index-1]=='o') {awaitingOK=FALSE;}
+		}
+		index++;
+		HAL_Delay(1);
+	}
+
+	if (!completeMessage) { return; }
+	i++;
+	while (c<9 && content[i] !=',') {machineStatus[c++]=content[i++]; machineStatus[c]=0; } // get the machine status
+	while (content[i++] != ':') ; // skip until the first ':'
+	c=0;
+	while (c<8 && content[i] !=',') { MposX[c++]=content[i++]; MposX[c] = 0;} // get MposX
+	c=0; i++;
+	while (c<8 && content[i] !=',') { MposY[c++]=content[i++]; MposY[c] = 0;} // get MposY
+	c=0; i++;
+	while (c<8 && content[i] !=',') { MposZ[c++]=content[i++]; MposZ[c] = 0;} // get MposZ
+	while (content[i++] != ':') ; // skip until the next ':'
+	c=0;
+	while (c<8 && content[i] !=',') { WposX[c++]=content[i++]; WposX[c] = 0;} // get WposX
+	c=0; i++;
+	while (c<8 && content[i] !=',') { WposY[c++]=content[i++]; WposY[c] = 0;} // get WposY
+	c=0; i++;
+	while (c<8 && content[i] !='>') { WposZ[c++]=content[i++]; WposZ[c] = 0;} // get WposZ
+
+	if (WposZ[0]=='-')
+	{ WposZ[5]='0';WposZ[6]=0;}
+	else
+	{ WposZ[4]='0';WposZ[5]=0;}
+}
+
+void checkForOk(void)
+{
+	// read the receive buffer (if anything to read)
+	uint8 c,lastc;
+	c=64;
+	lastc=64;
+
+	while(__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE))
+	{
+		HAL_UART_Receive(&huart1, &c, 1, 100);
+		if (lastc =='o' && c == 'k')
+		{
+			awaitingOK = FALSE;
+		}
+		lastc = c;
+		HAL_Delay(3);
+	}
+}
+
 /*
 void sendFile(uint8 byte)
 {
 
 }
-*/
+ */
 uint8 filecount(void)
 {
 	/*
@@ -353,6 +786,59 @@ void SystemClock_Config(void)
 	{
 		Error_Handler();
 	}
+}
+
+/**
+ * @brief ADC1 Initialization Function
+ * @param None
+ * @retval None
+ */
+void MX_ADC1_Init(void)
+{
+
+	/* USER CODE BEGIN ADC1_Init 0 */
+
+	/* USER CODE END ADC1_Init 0 */
+
+	ADC_ChannelConfTypeDef sConfig = {0};
+
+	/* USER CODE BEGIN ADC1_Init 1 */
+
+	/* USER CODE END ADC1_Init 1 */
+	/** Common config
+	 */
+	hadc1.Instance = ADC1;
+	hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
+	hadc1.Init.ContinuousConvMode = ENABLE;
+	hadc1.Init.DiscontinuousConvMode = DISABLE;
+	hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+	hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+	hadc1.Init.NbrOfConversion = 2;
+	if (HAL_ADC_Init(&hadc1) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	/** Configure Regular Channel
+	 */
+	sConfig.Channel = ADC_CHANNEL_1;
+	sConfig.Rank = ADC_REGULAR_RANK_1;
+	sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
+	if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	/** Configure Regular Channel
+	 */
+	sConfig.Channel = ADC_CHANNEL_2;
+	sConfig.Rank = ADC_REGULAR_RANK_2;
+	if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	/* USER CODE BEGIN ADC1_Init 2 */
+
+	/* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -472,6 +958,9 @@ void MX_DMA_Init(void)
 	/* DMA1_Channel1_IRQn interrupt configuration */
 	HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
 	HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+	/* DMA1_Channel5_IRQn interrupt configuration */
+	HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
 
 }
 
@@ -564,6 +1053,162 @@ static void StringCopy(sint8 str1[], sint8 str2[]){
 		count++;
 	}
 	str1[count] = '\0';
+}
+
+static void NumberToString(uint64 num, sint8* str)
+{
+	uint8 count, rem, length = 0;
+	uint64 value = num;
+
+	while (value != 0)
+	{
+		length++;
+		value /= 10;
+	}
+	for (count = 0; count < length; count++)
+	{
+		rem = num % 10;
+		num = num / 10;
+		str[length - (count + 1)] = rem + '0';
+	}
+	str[length] = '\0';
+}
+
+uint8 Strings_Is_Equal(sint8 Str1[], sint8 Str2[]){
+	uint8 count = 0;
+	uint8 Str1_length = string_length(Str1);
+	uint8 Str2_length = string_length(Str2);
+	if(Str1_length == Str2_length){
+		while(count < Str1_length){
+			if(Str1[count] != Str2[count]){
+				return FALSE;
+			}
+			count++;
+		}
+		return TRUE;
+	}
+	else{
+		return FALSE;
+	}
+}
+
+uint8 String_FindSubstringIndex(sint8* string, sint8* subString, uint8* index)
+{
+	uint8 StringCount = 0;
+	uint8 SubStringCount = 0;
+
+	uint8 StringSize = string_length(string);
+
+	uint8 matchFlag = 0;
+
+	for(; StringCount < StringSize; StringCount++)
+	{
+		if(string[StringCount] == subString[SubStringCount])
+		{
+			if(SubStringCount == 0)
+			{
+				*index = StringCount;
+				matchFlag = 1;
+			}
+			else if(subString[SubStringCount + 1] == '\0')
+			{
+				return 1;
+			}
+			SubStringCount++;
+		}
+		else if(matchFlag == 1)
+		{
+			matchFlag = 0;
+			SubStringCount = 0;
+		}
+	}
+
+	return 0;
+}
+
+uint8 String_ReplaceSubstring(sint8* string, sint8* subString, sint8* replacement)
+{
+	uint8 returnValue = 0;
+	uint8 index;
+	uint8 SubstringSize = string_length(subString);
+	uint8 StringCount = 0;
+
+	sint8 output[255] = "";
+	uint8 OutputCount = 0;
+
+	if(1 == String_FindSubstringIndex(string, subString, &index))
+	{
+		for(; StringCount < index; StringCount++)
+		{
+			output[StringCount] = string[StringCount];
+		}
+
+		OutputCount = index;
+
+		for(; replacement[OutputCount - index] != '\0'; OutputCount++)
+		{
+			output[OutputCount] = replacement[OutputCount - index];
+		}
+
+		StringCount = StringCount + SubstringSize;
+
+		while(string[StringCount] != '\0')
+		{
+			output[OutputCount] = string[StringCount];
+			StringCount++;
+			OutputCount++;
+		}
+
+		output[OutputCount] = '\0';
+		OutputCount = 0;
+
+		while(output[OutputCount] != '\0')
+		{
+			string[OutputCount] = output[OutputCount];
+			OutputCount++;
+		}
+
+		string[OutputCount] = '\0';
+		returnValue = 1;
+	}
+
+	return returnValue;
+}
+
+uint8 String_IsStartWith(sint8* string, sint8 Char)
+{
+	if(string[0] == Char)
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+void Sring_Trim(sint8* string)
+{
+	uint8 count1 = 0, count2 = 0;
+	sint8 output[255] = "";
+	while(string[count1] != '\0')
+	{
+		if(string[count1] != ' ')
+		{
+			output[count2] = string[count1];
+			count2 ++;
+		}
+		count1 ++;
+	}
+	output[count2] = '\0';
+	count2 = 0;
+
+	while(output[count2] != '\0')
+	{
+		string[count2] = output[count2];
+		count2++;
+	}
+	string[count2] = '\0';
 }
 
 #ifdef  USE_FULL_ASSERT
